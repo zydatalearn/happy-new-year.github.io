@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新年快乐</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: black;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+<script>
+let fireworks = [];
+let backgroundStars = [];
+
+const launchCol = "#FFD700";
+const explodeCols = ["#FF5555", "#FFD700", "#FFFFFF"];
+const textCol = "#FFD700";
+
+class StarParticle {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.size = random(2, 4);
+    this.col = color(random(explodeCols));
+    this.angle = random(TWO_PI);
+    this.speed = random(1.2, 2.5);
+    this.alpha = 255;
+    this.fade = random(4, 7);
+  }
+
+  update() {
+    this.x += cos(this.angle) * this.speed;
+    this.y += sin(this.angle) * this.speed;
+    this.speed *= 0.97;
+    this.alpha -= this.fade;
+  }
+
+  draw() {
+    if (this.alpha <= 0) return;
+    push();
+    translate(this.x, this.y);
+    fill(red(this.col), green(this.col), blue(this.col), this.alpha);
+    noStroke();
+    beginShape();
+    for (let i = 0; i < 5; i++) {
+      let a1 = TWO_PI * i / 5 - HALF_PI;
+      vertex(this.size * cos(a1), this.size * sin(a1));
+      let a2 = TWO_PI * (i + 0.5) / 5 - HALF_PI;
+      vertex(this.size * 0.4 * cos(a2), this.size * 0.4 * sin(a2));
+    }
+    endShape(CLOSE);
+    pop();
+  }
+
+  dead() {
+    return this.alpha <= 0;
+  }
+}
+
+class Firework {
+  constructor() {
+    this.x = random(width * 0.15, width * 0.85);
+    this.y = height;
+    this.targetY = random(height * 0.25, height * 0.55);
+    this.speed = 6;
+    this.exploded = false;
+    this.particles = [];
+  }
+
+  update() {
+    if (!this.exploded) {
+      this.y -= this.speed;
+      if (this.y <= this.targetY) this.explode();
+    } else {
+      for (let i = this.particles.length - 1; i >= 0; i--) {
+        this.particles[i].update();
+        if (this.particles[i].dead()) {
+          this.particles.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  explode() {
+    this.exploded = true;
+    for (let i = 0; i < 32; i++) {
+      this.particles.push(new StarParticle(this.x, this.y));
+    }
+  }
+
+  draw() {
+    if (!this.exploded) {
+      fill(launchCol);
+      noStroke();
+      ellipse(this.x, this.y, 3);
+    } else {
+      this.particles.forEach(p => p.draw());
+    }
+  }
+
+  dead() {
+    return this.exploded && this.particles.length === 0;
+  }
+}
+
+function generateBackgroundStars() {
+  backgroundStars = [];
+  for (let i = 0; i < 80; i++) {
+    backgroundStars.push({
+      x: random(width),
+      y: random(height),
+      r: random(1, 2),
+      phase: random(TWO_PI)
+    });
+  }
+}
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  generateBackgroundStars();
+  textAlign(CENTER, CENTER);
+}
+
+function draw() {
+
+  background(0, 0, 17, 20);
+
+  for (let s of backgroundStars) {
+    let a = sin(frameCount * 0.02 + s.phase) * 120 + 135;
+    fill(255, a);
+    noStroke();
+    ellipse(s.x, s.y, s.r);
+  }
+
+  if (frameCount % 18 === 0) {
+    fireworks.push(new Firework());
+  }
+
+  for (let i = fireworks.length - 1; i >= 0; i--) {
+    fireworks[i].update();
+    fireworks[i].draw();
+    if (fireworks[i].dead()) fireworks.splice(i, 1);
+  }
+
+  fill(textCol);
+  textSize(min(width * 0.05, 32));
+  text("Happy New Year", width / 2, height * 0.22);
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  generateBackgroundStars();
+}
+</script>
+</body>
+</html>
